@@ -34,7 +34,7 @@ type Op func(ctx context.Context) (interface{}, error)
 
 // execute executes an op and possibly deliver the results to the supplied channel
 // as long as the operation does not get trumped
-func executeOperation(p priority, op Op, trumps *naiiveBroadcast, results chan<- *opResult, wg *sync.WaitGroup) {
+func (op Op) execute(p priority, trumps *naiiveBroadcast, results chan<- *opResult, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// context to cancel if our results get trumped so that
@@ -87,6 +87,9 @@ func executeOperation(p priority, op Op, trumps *naiiveBroadcast, results chan<-
 //
 // The highest-priority result is returned, or the highest-priority error is returned.
 func PerformOperations(ops ...Op) (interface{}, error) {
+	if len(ops) == 0 {
+		return nil, errors.New("no operations")
+	}
 
 	trumps := newBroadcast(len(ops)) // todo: implement a better (real) broadcast system
 	defer trumps.Close()
@@ -101,7 +104,7 @@ func PerformOperations(ops ...Op) (interface{}, error) {
 	// Launch our operations
 	for p, op := range ops {
 		go func(p int, op Op) {
-			executeOperation(priority(p), op, trumps, results, wg)
+			op.execute(priority(p), trumps, results, wg)
 		}(p, op)
 	}
 

@@ -43,7 +43,7 @@ func main() {
 
 	//go profile()
 
-	const N = 3000
+	const N = 30
 
 	ops := make([]goop.Op, N)
 	for i := 0; i < N; i++ {

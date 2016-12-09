@@ -3,9 +3,9 @@ package goop
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
-	"fmt"
 )
 
 func makeOperation(p int, N int) Op {
@@ -30,10 +30,23 @@ func makeOperations(n int) []Op {
 	return ops
 }
 
+func TestPerformOperations(t *testing.T) {
+	if result, err := PerformOperations(); err.Error() != "no operations" {
+		t.Fatalf("Unexpected return: (%v, %v)", result, err)
+	}
+	result, err := PerformOperations(makeOperations(10)...)
+	if result.(int) != 5 {
+		t.Fatalf("Unexpected response: %d", result)
+	}
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+}
+
 func BenchmarkPerformOperations(b *testing.B) {
 	numOpses := [...]int{1, 10, 100, 1000}
 	for _, numOps := range numOpses {
-		b.Run(fmt.Sprintf("BenchmarkPerformOperations%d",numOps), func(b *testing.B) {
+		b.Run(fmt.Sprintf("BenchmarkPerformOperations%d", numOps), func(b *testing.B) {
 			benchmarkOperations(numOps, b)
 		})
 	}
