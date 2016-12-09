@@ -6,33 +6,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/explodes/operations"
+	"github.com/explodes/goop"
 	"math/rand"
 	"time"
+	"os"
+	"runtime/pprof"
 )
 
-func sampleOperation(ctx context.Context) (interface{}, error) {
-	select {
-	case <-ctx.Done():
-		return nil, operations.ErrCancel
-	case <-time.After(time.Duration(10+rand.Intn(10)) * time.Millisecond):
-		if rand.Float32() > 0.90 {
-			return nil, errors.New("Random failure")
+func makeOperation(p int, N int) goop.Op {
+	return func(ctx context.Context) (interface{}, error) {
+		select {
+		case <-ctx.Done():
+			return nil, goop.ErrCancel
+		case <-time.After(10 * time.Millisecond):
+			if p < N / 2 {
+				return nil, errors.New("Doomed to fail")
+			}
+			return p, nil
 		}
-		return rand.Intn(1000), nil
+	}
+}
+
+func profile() {
+	pprof.Lookup("heap").WriteTo(os.Stdout, 1)
+	for {
+		select {
+		case <-time.After(1000 * time.Millisecond):
+		//pprof.Lookup("goroutine").WriteTo(os.Stdout, 1)
+			pprof.Lookup("heap").WriteTo(os.Stdout, 1)
+		}
 	}
 }
 
 func main() {
-	rand.Seed(1001)
+	rand.Seed(1002)
 
-	const N = 300
+	//go profile()
 
-	ops := make([]operations.Op, N)
+	const N = 3000
+
+	ops := make([]goop.Op, N)
 	for i := 0; i < N; i++ {
-		ops[i] = sampleOperation
+		ops[i] = makeOperation(i, N)
 	}
 
-	result, err := operations.PerformOperations(ops...)
+	result, err := goop.PerformOperations(ops...)
 	fmt.Println(result, err)
 }

@@ -1,33 +1,26 @@
-package operations
+package goop
 
-type Broadcast interface {
-	B() <-chan priority
-	Close()
-	Broadcast(v priority)
-}
-
-func newBroadcast(recipients int) Broadcast {
-	return &simpleBroadcast{
-		recipients: recipients,
-		b:          make(chan priority, recipients * recipients),
-	}
-}
-
-// todo: this sucks because it relies on a predetermined number of sends to a channel to simulate a broadcast
-type simpleBroadcast struct {
+type naiiveBroadcast struct {
 	b          chan priority
 	recipients int
 }
 
-func (b *simpleBroadcast) B() <-chan priority {
+func newBroadcast(recipients int) *naiiveBroadcast {
+	return &naiiveBroadcast{
+		recipients: recipients,
+		b:          make(chan priority, recipients*recipients),
+	}
+}
+
+func (b *naiiveBroadcast) B() <-chan priority {
 	return b.b
 }
 
-func (b *simpleBroadcast) Close() {
+func (b *naiiveBroadcast) Close() {
 	close(b.b)
 }
 
-func (b *simpleBroadcast) Broadcast(v priority) {
+func (b *naiiveBroadcast) Broadcast(v priority) {
 	for i := 0; i < b.recipients; i++ {
 		b.b <- v
 	}
